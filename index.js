@@ -1,5 +1,5 @@
 const express = require('express')
-const pool = require('./db');
+const pool = require('./db/db');
 const bodyParser = require('body-parser');
 var jwt = require('jsonwebtoken');
 const app = express();
@@ -10,11 +10,11 @@ const port = process.env.PORT || 5000;
 app.use(bodyParser.json());
 app.use(express.json());
 const bcrypt = require("bcrypt");
-app.use(cors({
-  origin:'http://localhost:3000', 
-  credentials:true,            //access-control-allow-credentials:true
-  optionSuccessStatus:200
-}));
+app.use(cors([
+  'https://a-job-task-client.vercel.app/', 
+  'http://localhost:3000/'
+]));
+app.use(cookieParser())
 
 // =-=-=-=-=-=-=register=-=-=-=-=-=-=-
 app.post('/register', async(req,res)=>{
@@ -36,9 +36,9 @@ try {
   );
 
   const newId = newUser.rows[0];
-  const jwtToken = jwt.sign({ userId: newId.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  const token = jwt.sign({ userId: newId.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-  return res.json({ jwtToken, userId: newId.id })
+  return res.json({ token, userId: newId.id })
 } catch (err) {
   console.error(err.message);
   res.status(500).send("Server error");
@@ -129,7 +129,6 @@ app.put('/user/:id', async (req, res) => {
 // =-=-=-=-=-=-=--
 app.post('/userpost',  async (req, res) => {
   const {image, author, title, content } = req.body;
-
   try {
     const result = await pool.query(
       'INSERT INTO posts (image, author, title, content) VALUES ($1, $2, $3, $4) RETURNING *',
